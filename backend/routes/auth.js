@@ -163,27 +163,35 @@ router.get('/users', async (req, res) => {
 // ============================================
 // TODO 2: Routes OAuth Google
 // ============================================
-// Instructions:
-// 1. Créer une route GET '/google' qui :
-//    - Utilise passport.authenticate('google', { ... })
-//    - Configure les options :
-//      * scope: ['profile', 'email']
-//      * session: false (IMPORTANT : stateless JWT)
-//    - Cette route redirige l'utilisateur vers Google pour authentification
-//
-// 2. Créer une route GET '/google/callback' qui :
-//    - Utilise passport.authenticate('google', { session: false, failureRedirect: ... })
-//    - Ajoute un handler (req, res) => { ... } après l'authentification
-//    - Dans le handler :
-//      * Récupérer l'utilisateur authentifié depuis req.user
-//      * Générer un JWT avec generateToken(req.user._id)
-//      * Rediriger vers le frontend : `${process.env.FRONTEND_URL}/auth/callback?token=${token}`
-//      * En cas d'erreur, rediriger vers : `${process.env.FRONTEND_URL}/login?error=token_generation_failed`
-//
-// Documentation Passport : https://www.passportjs.org/concepts/authentication/oauth/
-// =============================================================================
 
-// TODO 2: Votre code ici
+// GET /auth/google - Initie l'authentification Google
+router.get('/google', passport.authenticate('google', {
+  scope: ['profile', 'email'],
+  session: false
+}));
+
+// GET /auth/google/callback - Callback après authentification Google
+router.get('/google/callback', 
+  passport.authenticate('google', {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=auth_failed`
+  }),
+  (req, res) => {
+    try {
+      // Récupérer l'utilisateur authentifié
+      const user = req.user;
+      
+      // Générer le JWT
+      const token = generateToken(user._id);
+      
+      // Rediriger vers le frontend avec le token
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+    } catch (error) {
+      console.error('Erreur Google callback:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
+    }
+  }
+);
 
 
 module.exports = router;
