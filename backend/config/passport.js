@@ -1,6 +1,7 @@
 const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
-const { findUserByGoogleId, createUserFromGoogle } = require('../models/User');
+const GitHubStrategy = require('passport-github2').Strategy;
+const { findUserByGoogleId, createUserFromGoogle, findUserByGithubId, createUserFromGithub } = require('../models/User');
 
 // =============================================================================
 // TODO 1: Configuration de la stratégie Google OAuth 2.0
@@ -22,6 +23,38 @@ passport.use(new GoogleStrategy({
     if (!user) {
       user = await createUserFromGoogle(db, {
         googleId: profile.id,
+        email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
+        name: profile.displayName,
+        picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null
+      });
+    }
+    
+    return done(null, user);
+  } catch (error) {
+    return done(error, null);
+  }
+}));
+
+// =============================================================================
+// TODO 3: Configuration de la stratégie GitHub OAuth 2.0
+// =============================================================================
+
+passport.use(new GitHubStrategy({
+  clientID: process.env.GITHUB_CLIENT_ID,
+  clientSecret: process.env.GITHUB_CLIENT_SECRET,
+  callbackURL: process.env.GITHUB_CALLBACK_URL,
+  passReqToCallback: true
+}, async (req, accessToken, refreshToken, profile, done) => {
+  try {
+    const db = req.app.locals.db;
+    
+    // Chercher l'utilisateur par githubId
+    let user = await findUserByGithubId(db, profile.id);
+    
+    // Si l'utilisateur n'existe pas, le créer
+    if (!user) {
+      user = await createUserFromGithub(db, {
+        githubId: profile.id,
         email: profile.emails && profile.emails[0] ? profile.emails[0].value : null,
         name: profile.displayName,
         picture: profile.photos && profile.photos[0] ? profile.photos[0].value : null

@@ -75,11 +75,45 @@ async function createUserFromGoogle(db, { googleId, email, name, picture }) {
   };
 }
 
+// ============================================
+// Fonctions Helper pour GitHub OAuth
+// ============================================
+
+// Trouver un utilisateur par son GitHub ID
+async function findUserByGithubId(db, githubId) {
+  return await db.collection('users').findOne({ githubId });
+}
+
+// Créer un utilisateur depuis GitHub OAuth
+async function createUserFromGithub(db, { githubId, email, name, picture }) {
+  const result = await db.collection('users').insertOne({
+    githubId,
+    email: email ? email.toLowerCase() : null,
+    name,
+    picture,
+    provider: 'github',
+    createdAt: new Date()
+    // Pas de champ password pour les utilisateurs OAuth
+  });
+
+  return {
+    _id: result.insertedId,
+    githubId,
+    email: email ? email.toLowerCase() : null,
+    name,
+    picture,
+    provider: 'github',
+    createdAt: new Date()
+  };
+}
+
 module.exports = {
   findUserByEmail,
   findUserById,
   createUser,
   comparePassword,
   findUserByGoogleId,
-  createUserFromGoogle
+  createUserFromGoogle,
+  findUserByGithubId,
+  createUserFromGithub
 };
