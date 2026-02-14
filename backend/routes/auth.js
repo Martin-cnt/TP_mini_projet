@@ -1,7 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const passport = require('../config/passport');
-const { findUserByEmail, findUserById, createUser, comparePassword, findUserByGithubId } = require('../models/User');
+const { findUserByEmail, findUserById, createUser, comparePassword, findUserByGithubId, findUserByDiscordId } = require('../models/User');
 const { authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
@@ -217,6 +217,35 @@ router.get('/github/callback',
       res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
     } catch (error) {
       console.error('Erreur GitHub callback:', error);
+      res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
+    }
+  }
+);
+
+// GET /auth/discord - Initie l'authentification Discord
+router.get('/discord', passport.authenticate('discord', {
+  scope: ['identify', 'email'],
+  session: false
+}));
+
+// GET /auth/discord/callback - Callback après authentification Discord
+router.get('/discord/callback', 
+  passport.authenticate('discord', {
+    session: false,
+    failureRedirect: `${process.env.FRONTEND_URL}/login?error=discord_auth_failed`
+  }),
+  (req, res) => {
+    try {
+      // Récupérer l'utilisateur authentifié
+      const user = req.user;
+      
+      // Générer le JWT
+      const token = generateToken(user._id);
+      
+      // Rediriger vers le frontend avec le token
+      res.redirect(`${process.env.FRONTEND_URL}/auth/callback?token=${token}`);
+    } catch (error) {
+      console.error('Erreur Discord callback:', error);
       res.redirect(`${process.env.FRONTEND_URL}/login?error=token_generation_failed`);
     }
   }

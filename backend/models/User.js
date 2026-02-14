@@ -107,6 +107,38 @@ async function createUserFromGithub(db, { githubId, email, name, picture }) {
   };
 }
 
+// ============================================
+// Fonctions Helper pour Discord OAuth
+// ============================================
+
+// Trouver un utilisateur par son Discord ID
+async function findUserByDiscordId(db, discordId) {
+  return await db.collection('users').findOne({ discordId });
+}
+
+// Créer un utilisateur depuis Discord OAuth
+async function createUserFromDiscord(db, { discordId, email, name, picture }) {
+  const result = await db.collection('users').insertOne({
+    discordId,
+    email: email ? email.toLowerCase() : null,
+    name,
+    picture,
+    provider: 'discord',
+    createdAt: new Date()
+    // Pas de champ password pour les utilisateurs OAuth
+  });
+
+  return {
+    _id: result.insertedId,
+    discordId,
+    email: email ? email.toLowerCase() : null,
+    name,
+    picture,
+    provider: 'discord',
+    createdAt: new Date()
+  };
+}
+
 module.exports = {
   findUserByEmail,
   findUserById,
@@ -115,5 +147,7 @@ module.exports = {
   findUserByGoogleId,
   createUserFromGoogle,
   findUserByGithubId,
-  createUserFromGithub
+  createUserFromGithub,
+  findUserByDiscordId,
+  createUserFromDiscord
 };
